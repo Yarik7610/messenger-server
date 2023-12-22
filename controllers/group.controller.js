@@ -5,10 +5,7 @@ class GroupController {
     const members = req.body.members;
     if (!members || members.length === 0)
       return res.status(400).json({ message: "Can't create empty group" });
-    let newMembers;
-    //если один юзре придет, то придет в виде строки, а если больше одного, то в виде массива
-    if (!Array.isArray(members)) newMembers = [members, req.userId];
-    else newMembers = [...members, req.userId];
+    let newMembers = [...members, req.userId];
     const newGroup = { name: req.body.name, members: newMembers };
     const finalGroup = new Group(newGroup);
     try {
@@ -35,9 +32,15 @@ class GroupController {
   }
   async exitGroup(req, res) {
     try {
-      await Group.findByIdAndUpdate(req.params.groupId, {
-        $pull: { members: req.userId },
-      });
+      const group = await Group.findByIdAndUpdate(
+        req.params.groupId,
+        {
+          $pull: { members: req.userId },
+        },
+        { new: true }
+      );
+      if (group.members.length === 0)
+        await Group.findByIdAndDelete(req.params.groupId);
       res.status(200).json({ groupId: req.params.groupId });
     } catch (e) {
       res.status(500).json({ message: e.message });

@@ -30,38 +30,76 @@ const io = new Server(server, {
   cors: {
     origin: "http://localhost:5173",
     methods: ["GET", "POST"],
+    transports: ["websocket", "polling"],
   },
 });
 
-const messages = [];
 let activeUsers = [];
-
+let unreadMessages = {};
 io.on("connection", (socket) => {
   const id = socket.handshake.query.id;
 
   socket.on("addNewUser", () => {
     if (!activeUsers.some((user) => user.userId === id)) {
       activeUsers.push({ id });
-      console.log("User connected", activeUsers);
+      // console.log("User connected", activeUsers);
     }
     io.emit("getActiveUsers", activeUsers);
+  });
+
+  socket.on("joinRoom", (groupId) => {
+    socket.join(groupId);
+  });
+  socket.on("leaveRoom", (groupId) => {
+    socket.leave(groupId);
+  });
+
+  socket.on("pushGroupMembers", ({ groupId, membersIds }) => {
+    if (!unreadMessages[groupId]) {
+      unreadMessages[groupId] = {};
+      membersIds.forEach((memberId) => {
+        unreadMessages[groupId][memberId] = {};
+        if (unreadMessages[groupId][memberId]["value"] > 0) return;
+        else {
+          unreadMessages[groupId][memberId]["value"] = 0;
+          unreadMessages[groupId][memberId]["isRead"] = false;
+        }
+      });
+    }
+    // console.log(unreadMessages);
+    socket.emit("getUsersUnreadGroupMessages", unreadMessages[groupId]);
+  });
+
+  socket.on("setReadUser", (groupId) => {
+    unreadMessages[groupId][id]["isRead"] = true;
+    // console.log(unreadMessages);
+  });
+  socket.on("unsetReadUser", (groupId) => {
+    unreadMessages[groupId][id]["isRead"] = false;
+    // console.log(unreadMessages);
+  });
+
+  socket.on("resetUsersUnreadGroupMessages", (groupId) => {
+    unreadMessages[groupId][id]["value"] = 0;
+  });
+
+  socket.on("sendNewMessage", ({ message, groupId, senderId }) => {
+    for (let user in unreadMessages[groupId]) {
+      if (user !== senderId && !unreadMessages[groupId][user]["isRead"]) {
+        unreadMessages[groupId][user]["value"]++;
+      }
+    }
+    // console.log(unreadMessages);
+    io.to(groupId).emit("getNewMessage", { message, groupId });
+    io.to(groupId).emit("getUsersUnreadGroupMessages", unreadMessages[groupId]);
   });
 
   socket.on("disconnect", () => {
     activeUsers = activeUsers.filter((u) => u.id !== id);
     io.emit("getActiveUsers", activeUsers);
-    console.log("User disconnected", activeUsers);
+    // console.log("User disconnected", activeUsers);
   });
 });
-
-// io.on("connection", (socket) => {
-//   console.log(`User connected: ${socket.id}`);
-//   socket.emit("receive_message_initial", messages);
-//   socket.on("send_message", (data) => {
-//     messages.push(data);
-//     io.emit("receive_message", data);
-//   });
-// });
 
 const start = async () => {
   try {

@@ -4,7 +4,7 @@ class UserController {
   async updatePhoto(req, res) {
     const imageName = req.file.originalname;
     try {
-      const user = await User.findByIdAndUpdate(
+      await User.findByIdAndUpdate(
         req.userId,
         {
           avatarPicture: imageName,
