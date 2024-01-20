@@ -8,4 +8,17 @@ groupRouter
   .route("/")
   .get(authMiddleware, groupController.getUserGroups)
   .post(authMiddleware, groupController.createGroup);
-groupRouter.delete("/:groupId", authMiddleware, groupController.exitGroup);
+groupRouter.put(
+  "/changeAdmin/:groupId",
+  authMiddleware,
+  groupController.changeAdmin
+);
+groupRouter
+  .route("/:groupId")
+  .delete(authMiddleware, groupController.exitGroup)
+  .put(authMiddleware, groupController.addMembers);
+groupRouter.delete(
+  "/:groupId/kick/:memberId",
+  authMiddleware,
+  groupController.kickMember
+);

@@ -5,6 +5,14 @@ const groupSchema = new Schema({
     type: String,
     required: true,
   },
+  type: {
+    type: String,
+    required: true,
+  },
+  admin: {
+    type: String,
+    default: "",
+  },
   members: [
     {
       type: Schema.Types.ObjectId,

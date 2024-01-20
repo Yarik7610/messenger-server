@@ -8,6 +8,13 @@ authRouter.post(
   "/signup",
   [
     check(
+      "login",
+      "Login length should be minimum 1 symbol and not more than 50 symbols"
+    ).isLength({
+      min: 1,
+      max: 50,
+    }),
+    check(
       "nickname",
       "Nickname length should be minimum 1 symbol and not more than 50 symbols"
     ).isLength({

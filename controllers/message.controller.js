@@ -16,7 +16,7 @@ class MessageController {
       const newMessageId = result._id;
       const finalMessage = await Message.findById(newMessageId).populate(
         "sender",
-        "avatarPicture nickname"
+        "login avatarPicture nickname"
       );
       res.status(201).json(finalMessage);
     } catch (e) {

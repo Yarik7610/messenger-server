@@ -47,13 +47,26 @@ io.on("connection", (socket) => {
     io.emit("getActiveUsers", activeUsers);
   });
 
+  //к комнате подключается группа, а не юзер
   socket.on("joinRoom", (groupId) => {
     socket.join(groupId);
   });
   socket.on("leaveRoom", (groupId) => {
+    delete unreadMessages[groupId][id];
+    // console.log(unreadMessages);
     socket.leave(groupId);
   });
 
+  socket.on("addMember", ({ groupId, membersIds }) => {
+    if (unreadMessages[groupId]) {
+      membersIds.forEach((memberId) => {
+        unreadMessages[groupId][memberId] = {};
+        unreadMessages[groupId][memberId]["value"] = 0;
+        unreadMessages[groupId][memberId]["isRead"] = false;
+      });
+    }
+    // console.log(unreadMessages);
+  });
   socket.on("pushGroupMembers", ({ groupId, membersIds }) => {
     if (!unreadMessages[groupId]) {
       unreadMessages[groupId] = {};
@@ -67,20 +80,24 @@ io.on("connection", (socket) => {
       });
     }
     // console.log(unreadMessages);
-    socket.emit("getUsersUnreadGroupMessages", unreadMessages[groupId]);
+    socket.emit("getUsersUnreadGroupMessages", {
+      groupUnreadMessages: unreadMessages[groupId],
+      groupId,
+    });
   });
 
   socket.on("setReadUser", (groupId) => {
-    unreadMessages[groupId][id]["isRead"] = true;
-    // console.log(unreadMessages);
+    if (unreadMessages[groupId] && unreadMessages[groupId][id])
+      unreadMessages[groupId][id]["isRead"] = true;
   });
   socket.on("unsetReadUser", (groupId) => {
-    unreadMessages[groupId][id]["isRead"] = false;
-    // console.log(unreadMessages);
+    if (unreadMessages[groupId] && unreadMessages[groupId][id])
+      unreadMessages[groupId][id]["isRead"] = false;
   });
 
   socket.on("resetUsersUnreadGroupMessages", (groupId) => {
-    unreadMessages[groupId][id]["value"] = 0;
+    if (unreadMessages[groupId] && unreadMessages[groupId][id])
+      unreadMessages[groupId][id]["value"] = 0;
   });
 
   socket.on("sendNewMessage", ({ message, groupId, senderId }) => {
@@ -91,7 +108,10 @@ io.on("connection", (socket) => {
     }
     // console.log(unreadMessages);
     io.to(groupId).emit("getNewMessage", { message, groupId });
-    io.to(groupId).emit("getUsersUnreadGroupMessages", unreadMessages[groupId]);
+    io.to(groupId).emit("getUsersUnreadGroupMessages", {
+      groupUnreadMessages: unreadMessages[groupId],
+      groupId,
+    });
   });
 
   socket.on("disconnect", () => {

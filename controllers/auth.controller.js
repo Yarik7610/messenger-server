@@ -15,17 +15,15 @@ class authController {
       if (!errors.isEmpty()) {
         return res
           .status(400)
-          .json({ message: "Check the length of nickname or password" });
+          .json({ message: "Check the length of login, nickname or password" });
       }
-      const { nickname, password } = req.body;
-      const canditate = await User.findOne({ nickname });
+      const { login, nickname, password } = req.body;
+      const canditate = await User.findOne({ login });
       if (canditate) {
-        return res
-          .status(400)
-          .json({ message: "This nickname is already taken" });
+        return res.status(400).json({ message: "This login is already taken" });
       }
       const hashedPassword = bcrypt.hashSync(password, 5);
-      const newUser = new User({ nickname, password: hashedPassword });
+      const newUser = new User({ login, nickname, password: hashedPassword });
       await newUser.save();
       return res.status(201).json({ message: "You've signed up" });
     } catch (e) {
@@ -33,17 +31,18 @@ class authController {
     }
   }
   async login(req, res) {
-    const { nickname, password } = req.body;
-    const candidate = await User.findOne({ nickname });
+    const { login, password } = req.body;
+    const candidate = await User.findOne({ login });
     if (!candidate) {
-      return res.status(400).json({ message: "Wrong password or nickname" });
+      return res.status(400).json({ message: "Wrong password or login" });
     }
     const validPassword = bcrypt.compareSync(password, candidate.password);
     if (!validPassword) {
-      return res.status(400).json({ message: "Wrong password or nickname" });
+      return res.status(400).json({ message: "Wrong password or login" });
     }
     const token = generateAccessToken(candidate._id);
     res.status(200).json({
+      login: candidate.login,
       nickname: candidate.nickname,
       _id: candidate._id,
       avatarPicture: candidate.avatarPicture,
@@ -58,6 +57,7 @@ class authController {
       }
       const token = generateAccessToken(me._id);
       res.json({
+        login: me.login,
         nickname: me.nickname,
         _id: me._id,
         avatarPicture: me.avatarPicture,
