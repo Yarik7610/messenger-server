@@ -1,4 +1,4 @@
-# Server
+# Server part of messenger
 
 To start server:
 1. Create .env in the root
